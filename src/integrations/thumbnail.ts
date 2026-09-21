@@ -102,6 +102,38 @@ const drawGameImage = (src: string): RawThumbnail => {
 	}
 }
 
+const FALLBACK_IMAGE_URL = 'https://cloud-i203j2e6a-hack-club-bot.vercel.app/1confused_dinosaur.png'
+
+// Transparent 16x16 raw thumbnail, used when the remote fallback image is unreachable
+// (offline / sandboxed builds) so metadata generation never crashes the dev server.
+const offlineFallbackThumbnail: Thumbnail = {
+	kind: 'raw',
+	data: Buffer.alloc(16 * 16 * 4).toString('base64'),
+	width: 16,
+	height: 16
+}
+
+let fallbackThumbnailPromise: Promise<Thumbnail> | null = null
+
+const getFallbackThumbnail = (): Promise<Thumbnail> => {
+	// Memoized so we fetch the default image at most once per process
+	if (!fallbackThumbnailPromise) {
+		fallbackThumbnailPromise = (async () => {
+			try {
+				const image = await fetch(FALLBACK_IMAGE_URL)
+				if (!image.ok) throw new Error(`Unexpected status ${image.status}`)
+				return {
+					kind: 'png',
+					data: Buffer.from(await image.arrayBuffer()).toString('base64')
+				} as Thumbnail
+			} catch {
+				return offlineFallbackThumbnail
+			}
+		})()
+	}
+	return fallbackThumbnailPromise
+}
+
 export const generateImageJson = async (name: string) => {
 	let gameContentString = loadGameContentFromDisk(name)
 	let gameImageBase64 = loadImageBase64FromDisk(name)
@@ -126,11 +158,7 @@ export const generateImageJson = async (name: string) => {
 	} catch (error) {
 		// If everything breaks, use a default image
 		// console.error(error)
-		const image = await fetch('https://cloud-i203j2e6a-hack-club-bot.vercel.app/1confused_dinosaur.png')
-		thumbnail = {
-			kind: 'png',
-			data: Buffer.from(await image.arrayBuffer()).toString('base64')
-		}
+		thumbnail = await getFallbackThumbnail()
 	}
 
 	// write/overwrite image json to public folder

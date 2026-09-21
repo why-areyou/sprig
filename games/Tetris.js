@@ -1,6 +1,6 @@
 /*
 @title: Tetris
-@author: 
+@author: Unknown
 @tags: ['retro', 'endless']
 @addedOn: 2024-01-01
 @description: A classic Tetris game where you arrange falling blocks to create complete lines. Use A/D to move left/right, S to move down, W/K to rotate clockwise, J to rotate counter-clockwise, L for hard drop, and I to restart when game over.
